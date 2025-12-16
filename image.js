@@ -16,7 +16,7 @@ async function geradorDeImagem() {
         contents : [
             {
                 parts: [
-                    {text : "Extraia todas as informações ligadas a marca que está sendo apresentada no documento, destacando coloração, jeito, padrões, cores válidas, inválidas e todos os outros padrões e regras necessárias. Sobre a resposta, ela será utilizada posteriormente na geração de imagens, logo, extraia ao máximo as informações necessárias com detalhe e especificidade, de modo a construir um prompt digno para a geração de uma imagem que esteja nos conformes que o documento apresenta." },
+                    { text : "Extraia todas as informações ligadas a marca que está sendo apresentada no documento, destacando coloração, jeito, padrões, cores válidas, inválidas e todos os outros padrões e regras necessárias. Sobre a resposta, ela será utilizada posteriormente na geração de imagens, logo, extraia ao máximo as informações necessárias com detalhe e especificidade, de modo a construir um prompt digno para a geração de uma imagem que esteja nos conformes que o documento apresenta." },
                     {
                         inlineData : {
                             mimeType : "application/pdf",
@@ -65,6 +65,5 @@ async function geradorDeImagem() {
     }
 
 }
-
 geradorDeImagem();
 
