@@ -1,13 +1,67 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>Editor de Imagens com IA</title>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div class="container">
+        <header>
+          <h1>Editor de Imagens com IA</h1>
+          <p>Faça upload de uma imagem, destaque a área que deseja editar e descreva a modificação desejada</p>
+        </header>
+
+        <div class="upload-section">
+          <label for="fileInput" class="upload-button">
+            <span>📁 Escolher Imagem</span>
+            <input type="file" id="fileInput" accept="image/*" hidden>
+          </label>
+          <p id="fileName" class="file-name"></p>
+        </div>
+
+        <div class="editor-section" id="editorSection" style="display: none;">
+          <div class="canvas-container">
+            <h2>Desenhe na área que deseja editar (use o pincel branco)</h2>
+            <canvas id="editorCanvas"></canvas>
+            <div class="canvas-controls">
+              <button id="clearButton" class="btn btn-secondary">🗑️ Limpar Desenho</button>
+              <label class="brush-size-label">
+                Tamanho do Pincel:
+                <input type="range" id="brushSize" min="5" max="50" value="20">
+                <span id="brushSizeValue">20px</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="instruction-section">
+            <label for="instructionInput">
+              <h3>Descreva o que deseja fazer na área destacada:</h3>
+            </label>
+            <textarea 
+              id="instructionInput" 
+              placeholder="Ex: Remova o texto desta área e deixe o espaço vazio harmônico com o restante da imagem..."
+              rows="4"
+            ></textarea>
+            <button id="submitButton" class="btn btn-primary">✨ Processar com IA</button>
+          </div>
+        </div>
+
+        <div class="result-section" id="resultSection" style="display: none;">
+          <h2>Resultado:</h2>
+          <div id="loadingSpinner" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Processando imagem com IA...</p>
+          </div>
+          <canvas id="resultCanvas"></canvas>
+          <a id="downloadLink" class="btn btn-success" style="display: none;" download="imagem-editada.png">💾 Baixar Imagem</a>
+        </div>
+
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

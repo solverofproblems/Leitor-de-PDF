@@ -16,7 +16,7 @@ async function edicaoImagem(img_array) {
     const responseAI = await ia.models.generateContent({
 
         model: "gemini-3-pro-image-preview",
-        contents: [{ text: "Observe ambas as imagens. A primeira trata-se da imagem original, enquanto a segunda imagem destaca de branco a área que eu quero que seja preenchida. Sobre essa área, limpe ela, de modo a retirar o texto presente nela, além de deixar o espaço vazio harmônico com o restante da imagem." }, img_array],
+        contents: [{ text: "Deixe o moicano bem colorido e espetado e troque o fundo para um céu noturno." }, img_array],
         config: {
             responseModalities: ['IMAGE'],
             imageConfig: {
@@ -27,7 +27,7 @@ async function edicaoImagem(img_array) {
         }
     });
 
-    fs.writeFileSync("resultado2.png", Buffer.from(responseAI.candidates[0].content.parts[0].inlineData.data, "base64")
+    fs.writeFileSync("resultado3.png", Buffer.from(responseAI.candidates[0].content.parts[0].inlineData.data, "base64")
 );
     return "Deu tudo certo!"
 }
@@ -35,13 +35,13 @@ async function edicaoImagem(img_array) {
 const imgModificacao = {
     inlineData: {
         mimeType: "image/png",
-        data: fs.readFileSync("img_modificacao/TOYOTA - Centro.png").toString('base64')
-    },
-
-    inlineData: {
-        mimeType: "image/png",
-        data: fs.readFileSync("img_modificacao/TOYOTA - Centro(modificado).png").toString('base64')
+        data: fs.readFileSync("resultado2.png").toString('base64')
     }
+
+    // inlineData: {
+    //     mimeType: "image/png",
+    //     data: fs.readFileSync("img_modificacao/rosseti(modificado).png").toString('base64')
+    // }
 
 }
 console.log(await edicaoImagem(imgModificacao));
