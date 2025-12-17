@@ -6,7 +6,6 @@ import fitz
 
 app = Flask(__name__)
 
-
 def extrair_imgPDFKV(pdf_bytes:bytes, nome_arquivo:str) -> dict:
     
     doc = fitz.open('pdf', pdf_bytes)
@@ -75,6 +74,63 @@ def extrair_imgPDFKV(pdf_bytes:bytes, nome_arquivo:str) -> dict:
 
 
 
+from flask import Flask, request, jsonify
+import base64
+import os
+import fitz
+
+def extrair_pagina_renderizada(pdf_bytes: bytes, nome_arquivo: str, dpi: int) -> dict:
+
+    try:
+        doc = fitz.open('pdf', pdf_bytes)
+    except Exception as e:
+        return { "status": "erro", "message": f"Erro ao abrir o PDF: {e}" }
+    
+    img_por_pagina = {}
+    total_paginas_processadas = 0
+    
+    # Parâmetros de renderização
+    zoom = dpi / 72
+    matrix = fitz.Matrix(zoom, zoom)
+    
+    prefixo_name = os.path.basename(nome_arquivo).split('.')[0]
+
+    try:
+        for page_index in range(len(doc)):
+            page = doc[page_index]
+            page_key = f"pagina_{page_index + 1}"
+            
+            pix = page.get_pixmap(matrix=matrix, alpha=False)
+            
+            image_bytes = pix.tobytes(output="png")
+            
+            base64_string = base64.b64encode(image_bytes).decode('utf-8')
+
+            img_por_pagina[page_key] = [{
+                "nome": f"{prefixo_name}_p{page_index+1}_renderizado.png",
+                "extensao": "png",
+                "tamanho_bytes": len(image_bytes),
+                "base64_data": base64_string 
+            }]
+
+            total_paginas_processadas += 1
+
+        doc.close()
+
+        return {
+            "status": "sucesso",
+            "message": f"{total_paginas_processadas} página(s) renderizadas com sucesso em {dpi} DPI.",
+            "imagens_encontradas": img_por_pagina
+        }
+    
+    except Exception as e:
+        doc.close()
+        return {
+            "status": "erro",
+            "message": f"Erro interno ao renderizar páginas: {e}"
+        }
+
+
 @app.route('/processar-KV/', methods=['POST'])
 
 def processar_arquivo_base64():
@@ -95,24 +151,29 @@ def processar_arquivo_base64():
 
         dados_binarios = base64.b64decode(base64String)
 
-        resultado = extrair_imgPDFKV(dados_binarios, nome_arquivo)
+
+#Análise utilizando a função "extrair_pagina_renderizada":
 
 
-        # os.makedirs('arquivos_processados', exist_ok=True)
-        # caminho_salvo = os.path.join('arquivos_processados', nome_arquivo)
-
-        # with open(caminho_salvo, "wb") as fileKV:
-        #     fileKV.write(dados_binarios)
-
-
-        # tamanho_bytes = len(dados_binarios)
+        resultado_pixels = extrair_pagina_renderizada(dados_binarios, nome_arquivo, 300)
 
         return jsonify({
 
-            "status":"sucesso",
-            "value" : resultado
+            "status" : "sucesso",
+            "value" : resultado_pixels
 
         })
+
+
+#Análise utilizando a função "extrair_imgPDFKV"
+        # resultado = extrair_imgPDFKV(dados_binarios, nome_arquivo)
+
+        # return jsonify({
+
+        #     "status":"sucesso",
+        #     "value" : resultado
+
+        # })
     
     except Exception as e:
 
