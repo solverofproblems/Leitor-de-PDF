@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+
+  <title>Frontend</title>
+</head>
+<body>
+  
+  <h1>Olá mundo!</h1>
+
+  <form id="uploadForm" action="/api/upload" method="post" enctype="multipart/form-data">
+      <input type="file" id="arquivoInput" name="arquivo_para_enviar">
+      <button type="submit">Enviar para o Servidor</button>
+  </form>
+
+  <div id="area-img" style="display:flex; flex-flow: column wrap; justify-content: center; align-items: center;"></div>
+
+  <script src="src/main.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</body>
+</html>

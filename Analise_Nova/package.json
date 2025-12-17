@@ -1,0 +1,26 @@
+{
+  "name": "analise_nova",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:node": "node backend/app.js",
+    "start:python": "python backend/app.py",
+    "start": "concurrently \"npm run start:node\" \"npm run start:python\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
