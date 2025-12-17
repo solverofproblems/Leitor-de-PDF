@@ -2,6 +2,7 @@
 let pdfViewer = null;
 let resultsGallery = null;
 let currentSessionId = null; // Armazena sessionId do PDF atual
+let automaticImages = []; // Armazena imagens extraídas automaticamente para combinação
 
 document.addEventListener('DOMContentLoaded', () => {
     // Verificar se as classes estão definidas
@@ -31,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnNewExtraction = document.getElementById('btn-new-extraction');
     const btnAutoExtract = document.getElementById('btn-auto-extract');
     const btnManualSelect = document.getElementById('btn-manual-select');
+    const btnCombinedExtract = document.getElementById('btn-combined-extract');
     const uploadStatus = document.getElementById('upload-status');
     const methodStatus = document.getElementById('method-status');
     const viewerStatus = document.getElementById('viewer-status');
@@ -97,12 +99,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handler de extração de seleções
+    // Handler de extração de seleções (pode incluir imagens automáticas)
     btnExtract.addEventListener('click', async function () {
         const selections = pdfViewer.getSelections();
 
-        if (selections.length === 0) {
-            showStatus(viewerStatus, 'Nenhuma seleção feita. Por favor, selecione áreas no PDF.', 'error');
+        // Verificar se há seleções manuais ou imagens automáticas
+        if (selections.length === 0 && automaticImages.length === 0) {
+            showStatus(viewerStatus, 'Nenhuma seleção feita. Por favor, selecione áreas no PDF ou use a opção "Automático + Manual".', 'error');
+            return;
+        }
+        
+        // Se houver apenas imagens automáticas (sem seleções manuais), mostrar resultados diretamente
+        if (selections.length === 0 && automaticImages.length > 0) {
+            resultsGallery.clear();
+            resultsGallery.addImages(automaticImages);
+            
+            uploadSection.style.display = 'none';
+            methodSelectionSection.style.display = 'none';
+            viewerSection.style.display = 'none';
+            resultsSection.style.display = 'block';
+            
+            showStatus(resultsStatus, `${automaticImages.length} imagem(ns) extraída(s) automaticamente!`, 'success');
+            automaticImages = [];
             return;
         }
 
@@ -111,29 +129,58 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        showStatus(viewerStatus, `Processando ${selections.length} seleção(ões)...`, 'loading');
+        const totalItems = selections.length + automaticImages.length;
+        showStatus(viewerStatus, `Processando ${totalItems} item(ns)...`, 'loading');
 
         try {
-            const response = await axios.post('http://localhost:5000/extrair-regioes', {
-                sessionId: currentSessionId,
-                selecoes: selections
-            });
+            let allImages = [];
 
-            if (response.data.status === 'sucesso') {
-                // Limpar galeria e adicionar novas imagens
-                resultsGallery.clear();
-                resultsGallery.addImages(response.data.value.imagens_extraidas);
-
-                // Mostrar seção de resultados
-                uploadSection.style.display = 'none';
-                viewerSection.style.display = 'none';
-                resultsSection.style.display = 'block';
-
-                const successCount = response.data.value.imagens_extraidas.filter(img => img.status === 'sucesso').length;
-                showStatus(resultsStatus, `${successCount} imagem(ns) extraída(s) com sucesso!`, 'success');
-            } else {
-                showStatus(viewerStatus, response.data.message || 'Erro ao extrair regiões', 'error');
+            // Se houver imagens automáticas, adicionar primeiro
+            if (automaticImages.length > 0) {
+                allImages = [...automaticImages];
             }
+
+            // Se houver seleções manuais, extrair e adicionar
+            if (selections.length > 0) {
+                const response = await axios.post('http://localhost:5000/extrair-regioes', {
+                    sessionId: currentSessionId,
+                    selecoes: selections
+                });
+
+                if (response.data.status === 'sucesso') {
+                    const manualImages = response.data.value.imagens_extraidas.filter(img => img.status === 'sucesso');
+                    allImages = [...allImages, ...manualImages];
+                } else {
+                    showStatus(viewerStatus, response.data.message || 'Erro ao extrair regiões manuais', 'error');
+                    return;
+                }
+            }
+
+            // Limpar galeria e adicionar todas as imagens
+            resultsGallery.clear();
+            resultsGallery.addImages(allImages);
+
+            // Mostrar seção de resultados
+            uploadSection.style.display = 'none';
+            methodSelectionSection.style.display = 'none';
+            viewerSection.style.display = 'none';
+            resultsSection.style.display = 'block';
+
+            const successCount = allImages.length;
+            const autoCount = automaticImages.length;
+            const manualCount = selections.length;
+            let message = `${successCount} imagem(ns) extraída(s) com sucesso!`;
+            if (autoCount > 0 && manualCount > 0) {
+                message += ` (${autoCount} automáticas + ${manualCount} manuais)`;
+            } else if (autoCount > 0) {
+                message += ` (${autoCount} automáticas)`;
+            } else {
+                message += ` (${manualCount} manuais)`;
+            }
+            showStatus(resultsStatus, message, 'success');
+            
+            // Limpar imagens automáticas após exibir resultados
+            automaticImages = [];
         } catch (error) {
             console.error('Erro ao extrair regiões:', error);
             const errorMessage = error.response?.data?.message || error.message || 'Erro ao extrair regiões';
@@ -153,6 +200,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handler de extração automática
     btnAutoExtract.addEventListener('click', async function () {
+        // Limpar imagens automáticas anteriores
+        automaticImages = [];
+        
         if (!currentSessionId) {
             showStatus(methodStatus, 'Erro: Sessão do PDF não encontrada. Por favor, faça upload novamente.', 'error');
             return;
@@ -190,12 +240,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handler de seleção manual
     btnManualSelect.addEventListener('click', function () {
+        // Limpar imagens automáticas se houver
+        automaticImages = [];
         // Mostrar seção de visualização para seleção manual
         uploadSection.style.display = 'none';
         methodSelectionSection.style.display = 'none';
         viewerSection.style.display = 'block';
         resultsSection.style.display = 'none';
         showStatus(viewerStatus, 'Clique e arraste para selecionar áreas no PDF.', 'info');
+    });
+
+    // Handler de extração combinada (automática + manual)
+    btnCombinedExtract.addEventListener('click', async function () {
+        if (!currentSessionId) {
+            showStatus(methodStatus, 'Erro: Sessão do PDF não encontrada. Por favor, faça upload novamente.', 'error');
+            return;
+        }
+
+        showStatus(methodStatus, 'Extraindo imagens automaticamente...', 'loading');
+
+        try {
+            // Primeiro, executar extração automática
+            const response = await axios.post('http://localhost:5000/extrair-imagens-automaticas', {
+                sessionId: currentSessionId
+            });
+
+            if (response.data.status === 'sucesso') {
+                // Armazenar imagens automáticas
+                automaticImages = response.data.value.imagens_extraidas.filter(img => img.status === 'sucesso');
+                
+                // Mostrar seção de visualização para adicionar seleções manuais
+                uploadSection.style.display = 'none';
+                methodSelectionSection.style.display = 'none';
+                viewerSection.style.display = 'block';
+                resultsSection.style.display = 'none';
+                
+                showStatus(viewerStatus, `${automaticImages.length} imagem(ns) extraída(s) automaticamente! Agora você pode adicionar seleções manuais adicionais.`, 'success');
+            } else {
+                showStatus(methodStatus, response.data.message || 'Erro ao extrair imagens automaticamente', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao extrair imagens automáticas:', error);
+            const errorMessage = error.response?.data?.message || error.message || 'Erro ao extrair imagens automaticamente';
+            showStatus(methodStatus, errorMessage, 'error');
+        }
     });
 
     // Handler de voltar
@@ -205,6 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         viewerSection.style.display = 'none';
         resultsSection.style.display = 'none';
         pdfViewer.clearSelections();
+        automaticImages = []; // Limpar imagens automáticas ao voltar
     });
 
     // Handler de nova extração
@@ -216,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pdfViewer.clearSelections();
         resultsGallery.clear();
         currentSessionId = null;
+        automaticImages = []; // Limpar imagens automáticas
         uploadForm.reset();
         // Resetar label também
         fileLabel.textContent = 'Escolher arquivo PDF';
