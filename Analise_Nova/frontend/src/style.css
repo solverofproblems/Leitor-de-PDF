@@ -13,73 +13,363 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #242424;
+  color: rgba(255, 255, 255, 0.87);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-#app {
-  max-width: 1280px;
+.app-container {
+  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
+}
+
+/* Seção de Upload */
+.upload-section {
   text-align: center;
+  padding: 2rem;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #f7df1eaa);
+.upload-section h1 {
+  font-size: 2.5em;
+  margin-bottom: 0.5rem;
 }
 
-.card {
-  padding: 2em;
+.subtitle {
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 2rem;
 }
 
-.read-the-docs {
-  color: #888;
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
-button {
+.file-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.file-input-wrapper input[type="file"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.file-label {
+  display: inline-block;
+  padding: 1rem 2rem;
+  background-color: #1a1a1a;
+  border: 2px dashed #646cff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  width: 100%;
+  text-align: center;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.file-label:hover {
+  border-color: #535bf2;
+  background-color: #2a2a2a;
+}
+
+.file-label.file-selected {
+  border-color: #22c55e;
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.file-input-wrapper input[type="file"]:focus + .file-label {
+  outline: 2px solid #646cff;
+  outline-offset: 2px;
+}
+
+/* Botões */
+.btn {
   border-radius: 8px;
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
+  padding: 0.8em 1.5em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: all 0.25s;
+  text-decoration: none;
+  display: inline-block;
 }
-button:hover {
+
+.btn-primary {
+  background-color: #646cff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #535bf2;
+  border-color: #535bf2;
+}
+
+.btn-success {
+  background-color: #22c55e;
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #16a34a;
+  border-color: #16a34a;
+}
+
+.btn-secondary {
+  background-color: #1a1a1a;
+  color: rgba(255, 255, 255, 0.87);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-secondary:hover {
   border-color: #646cff;
+  background-color: #2a2a2a;
 }
-button:focus,
-button:focus-visible {
+
+.btn:focus,
+.btn:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Mensagens de Status */
+.status-message {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9em;
+  min-height: 1.5rem;
+}
+
+.status-success {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-error {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.status-loading {
+  background-color: rgba(100, 108, 255, 0.2);
+  color: #646cff;
+  border: 1px solid rgba(100, 108, 255, 0.3);
+}
+
+.status-info {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* Seção de Visualização */
+.viewer-section {
+  padding: 1rem;
+}
+
+.viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.viewer-header h2 {
+  margin: 0;
+  font-size: 1.5em;
+}
+
+.viewer-controls {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pdf-viewer {
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  padding: 1.5rem;
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.page-wrapper {
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+  background-color: #2a2a2a;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.page-wrapper:last-child {
+  margin-bottom: 0;
+}
+
+.pdf-page-canvas {
+  max-width: 100%;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
+  cursor: crosshair;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  object-fit: contain;
+}
+
+/* Seção de Resultados */
+.results-section {
+  padding: 1rem;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.results-header h2 {
+  margin: 0;
+  font-size: 1.5em;
+}
+
+.results-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.result-image-wrapper {
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.result-image-wrapper:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.result-image {
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.result-image-info {
+  font-size: 0.85em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.result-image-info p {
+  margin: 0.25rem 0;
+}
+
+.result-image-info strong {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.result-error-wrapper {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  color: #ef4444;
+}
+
+.error-icon {
+  font-size: 2em;
+  margin-bottom: 0.5rem;
+}
+
+/* Scrollbar personalizada */
+.pdf-viewer::-webkit-scrollbar,
+.results-gallery::-webkit-scrollbar {
+  width: 10px;
+}
+
+.pdf-viewer::-webkit-scrollbar-track,
+.results-gallery::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 5px;
+}
+
+.pdf-viewer::-webkit-scrollbar-thumb,
+.results-gallery::-webkit-scrollbar-thumb {
+  background: #646cff;
+  border-radius: 5px;
+}
+
+.pdf-viewer::-webkit-scrollbar-thumb:hover,
+.results-gallery::-webkit-scrollbar-thumb:hover {
+  background: #535bf2;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 1rem;
+  }
+
+  .upload-section h1 {
+    font-size: 2em;
+  }
+
+  .viewer-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .viewer-controls {
+    justify-content: stretch;
+  }
+
+  .viewer-controls .btn {
+    flex: 1;
+  }
+
+  .results-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .results-gallery {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-color-scheme: light) {
@@ -87,10 +377,51 @@ button:focus-visible {
     color: #213547;
     background-color: #ffffff;
   }
-  a:hover {
-    color: #747bff;
+
+  body {
+    background-color: #ffffff;
+    color: #213547;
   }
-  button {
+
+  .file-label {
     background-color: #f9f9f9;
+    border-color: #646cff;
+    color: #213547;
+  }
+
+  .file-label:hover {
+    background-color: #f0f0f0;
+  }
+
+  .pdf-viewer {
+    background-color: #f9f9f9;
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .page-wrapper {
+    background-color: #ffffff;
+    border-color: rgba(0, 0, 0, 0.05);
+  }
+
+  .pdf-page-canvas {
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .result-image-wrapper {
+    background-color: #f9f9f9;
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .result-image-info {
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  .result-image-info strong {
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  .btn-secondary {
+    background-color: #f9f9f9;
+    color: #213547;
   }
 }

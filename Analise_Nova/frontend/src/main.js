@@ -1,88 +1,190 @@
-const areaImg = document.getElementById('area-img');
-
+// Variáveis globais
+let pdfViewer = null;
+let resultsGallery = null;
+let currentSessionId = null; // Armazena sessionId do PDF atual
 
 document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('uploadForm');
+    // Verificar se as classes estão definidas
+    if (typeof PDFViewer === 'undefined') {
+        console.error('PDFViewer não está definido. Verifique se pdf-viewer.js foi carregado corretamente.');
+        return;
+    }
+    
+    if (typeof ResultsGallery === 'undefined') {
+        console.error('ResultsGallery não está definido. Verifique se results-gallery.js foi carregado corretamente.');
+        return;
+    }
+    
+    // Inicializar componentes
+    pdfViewer = new PDFViewer('pdf-viewer');
+    resultsGallery = new ResultsGallery('results-gallery');
 
-    // 1. Adiciona um "ouvinte" para o evento de SUBMIT do formulário
-    form.addEventListener('submit', function (event) {
+    // Elementos do DOM
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadSection = document.getElementById('upload-section');
+    const viewerSection = document.getElementById('viewer-section');
+    const resultsSection = document.getElementById('results-section');
+    const btnExtract = document.getElementById('btn-extract');
+    const btnClear = document.getElementById('btn-clear');
+    const btnBack = document.getElementById('btn-back');
+    const btnNewExtraction = document.getElementById('btn-new-extraction');
+    const uploadStatus = document.getElementById('upload-status');
+    const viewerStatus = document.getElementById('viewer-status');
+    const resultsStatus = document.getElementById('results-status');
+    const fileInput = document.getElementById('arquivoInput');
+    const fileLabel = document.querySelector('.file-label');
 
+    // Handler para mostrar nome do arquivo selecionado
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const fileName = this.files[0].name;
+            const fileSize = (this.files[0].size / 1024 / 1024).toFixed(2); // MB
+            fileLabel.textContent = `${fileName} (${fileSize} MB)`;
+            fileLabel.classList.add('file-selected');
+        } else {
+            fileLabel.textContent = 'Escolher arquivo PDF';
+            fileLabel.classList.remove('file-selected');
+        }
+    });
+
+    // Handler de upload de PDF
+    uploadForm.addEventListener('submit', async function (event) {
         event.preventDefault();
 
         const formData = new FormData(this);
 
-        axios.post('http://localhost:5000/enviarKV', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
-        })
-            .then(function (response) {
+        if (!fileInput.files[0]) {
+            showStatus(uploadStatus, 'Por favor, selecione um arquivo PDF.', 'error');
+            return;
+        }
 
-                const objRetornado = response.data.img_obj;
+        showStatus(uploadStatus, 'Carregando PDF...', 'loading');
 
-                Object.entries(objRetornado).forEach(([chavePagina, listaImagens]) => {
-
-                    console.log(`Trabalhando a seguinte página: ${chavePagina}`)
-                    listaImagens.forEach((imagem, index) => {
-
-                        const base64String = imagem.base64_data;
-                        const extensao = imagem.extensao;
-
-                        const dataURL = `data:image/${extensao};base64,${base64String}`;
-
-                        areaImg.innerHTML += `<img src=${dataURL}>` 
-
-
-                    })
-
-
-                })
-
-
-
-
-
-                // console.log(response.data.img_obj);
-            //     const imagensAgrupadas = response.data.img_obj.imagens_encontradas;
-            //     const imagensProcessadas = [];
-
-            //     const chavesDasPaginas = Object.keys(imagensAgrupadas);
-
-            //     console.log(`Total de páginas encontradas: ${chavesDasPaginas.length}`);
-
-            //     chavesDasPaginas.forEach(chavePagina => {
-            //         // chavePagina será "pagina_1", "pagina_2", etc.
-            //         const listaDeImagens = imagensAgrupadas[chavePagina];
-
-            //         console.log(`--- Processando ${chavePagina} com ${listaDeImagens.length} imagem(ns) ---`);
-
-            //         listaDeImagens.forEach((imagem, index) => {
-
-
-            //             const base64String = imagem.base64_data;
-            //             const nomeArquivo = imagem.nome;
-            //             const extensao = imagem.extensao;
-
-            //             const dataUrl = `data:image/${extensao};base64,${base64String}`;
-
-            //             console.log(`[${chavePagina} - Imagem ${index + 1}]: ${nomeArquivo}`);
-            //             console.log(`Data URL (primeiros 50 chars): ${dataUrl.substring(0, 50)}...`);
-
-            //             // Se você precisar de uma nova estrutura de dados para o Front-end
-            //             imagensProcessadas.push({
-            //                 pagina: chavePagina,
-            //                 nome: nomeArquivo,
-            //                 dataUrl: dataUrl
-            //             });
-
-            //         });
-            //     });
-
-            // console.log(imagensProcessadas);
-            })
-            .catch(function (error) {
-                console.log('Deu erro! Avalie: ', error.data.message);
+        try {
+            // Enviar PDF para obter páginas renderizadas
+            const response = await axios.post('http://localhost:5000/obter-paginas', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
             });
 
+            if (response.data.status === 'sucesso') {
+                // Salvar sessionId para uso posterior (evita reenviar PDF completo)
+                currentSessionId = response.data.sessionId;
+
+                // Carregar páginas no visualizador
+                await pdfViewer.loadPages(response.data.value.imagens_encontradas);
+
+                // Mostrar seção de visualização
+                uploadSection.style.display = 'none';
+                viewerSection.style.display = 'block';
+                resultsSection.style.display = 'none';
+
+                showStatus(uploadStatus, '', '');
+                showStatus(viewerStatus, `PDF carregado com sucesso! ${response.data.value.total_paginas} página(s). Clique e arraste para selecionar áreas.`, 'success');
+            } else {
+                showStatus(uploadStatus, response.data.message || 'Erro ao processar PDF', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao carregar PDF:', error);
+            const errorMessage = error.response?.data?.message || error.message || 'Erro ao carregar PDF';
+            showStatus(uploadStatus, errorMessage, 'error');
+        }
     });
+
+    // Handler de extração de seleções
+    btnExtract.addEventListener('click', async function () {
+        const selections = pdfViewer.getSelections();
+
+        if (selections.length === 0) {
+            showStatus(viewerStatus, 'Nenhuma seleção feita. Por favor, selecione áreas no PDF.', 'error');
+            return;
+        }
+
+        if (!currentSessionId) {
+            showStatus(viewerStatus, 'Erro: Sessão do PDF não encontrada. Por favor, faça upload novamente.', 'error');
+            return;
+        }
+
+        showStatus(viewerStatus, `Processando ${selections.length} seleção(ões)...`, 'loading');
+
+        try {
+            const response = await axios.post('http://localhost:5000/extrair-regioes', {
+                sessionId: currentSessionId,
+                selecoes: selections
+            });
+
+            if (response.data.status === 'sucesso') {
+                // Limpar galeria e adicionar novas imagens
+                resultsGallery.clear();
+                resultsGallery.addImages(response.data.value.imagens_extraidas);
+
+                // Mostrar seção de resultados
+                uploadSection.style.display = 'none';
+                viewerSection.style.display = 'none';
+                resultsSection.style.display = 'block';
+
+                const successCount = response.data.value.imagens_extraidas.filter(img => img.status === 'sucesso').length;
+                showStatus(resultsStatus, `${successCount} imagem(ns) extraída(s) com sucesso!`, 'success');
+            } else {
+                showStatus(viewerStatus, response.data.message || 'Erro ao extrair regiões', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao extrair regiões:', error);
+            const errorMessage = error.response?.data?.message || error.message || 'Erro ao extrair regiões';
+            showStatus(viewerStatus, errorMessage, 'error');
+        }
+    });
+
+    // Handler de limpar seleções
+    btnClear.addEventListener('click', function () {
+        pdfViewer.clearSelections();
+        showStatus(viewerStatus, 'Seleções limpas. Você pode fazer novas seleções.', 'info');
+    });
+
+    // Handler de voltar
+    btnBack.addEventListener('click', function () {
+        uploadSection.style.display = 'block';
+        viewerSection.style.display = 'none';
+        resultsSection.style.display = 'none';
+        pdfViewer.clearSelections();
+        currentSessionId = null;
+    });
+
+    // Handler de nova extração
+    btnNewExtraction.addEventListener('click', function () {
+        uploadSection.style.display = 'block';
+        viewerSection.style.display = 'none';
+        resultsSection.style.display = 'none';
+        pdfViewer.clearSelections();
+        resultsGallery.clear();
+        currentSessionId = null;
+        uploadForm.reset();
+        // Resetar label também
+        fileLabel.textContent = 'Escolher arquivo PDF';
+        fileLabel.classList.remove('file-selected');
+    });
+
+    /**
+     * Função auxiliar para mostrar mensagens de status
+     */
+    function showStatus(element, message, type) {
+        element.textContent = message;
+        element.className = 'status-message';
+        
+        if (type) {
+            element.classList.add(`status-${type}`);
+        }
+        
+        // Limpar mensagem após 5 segundos (exceto para loading)
+        if (type !== 'loading' && message) {
+            setTimeout(() => {
+                if (element.textContent === message) {
+                    element.textContent = '';
+                    element.className = 'status-message';
+                }
+            }, 5000);
+        }
+    }
+
 });
