@@ -25,13 +25,37 @@
       <div id="upload-status" class="status-message"></div>
     </section>
 
+    <!-- Seção de Escolha do Método -->
+    <section id="method-selection-section" class="method-selection-section" style="display: none;">
+      <h2>Escolha o método de extração</h2>
+      <p class="subtitle">Como deseja extrair as imagens do PDF?</p>
+      
+      <div class="method-options">
+        <div class="method-card" id="method-auto">
+          <div class="method-icon">🤖</div>
+          <h3>Extração Automática</h3>
+          <p>Extrai automaticamente todas as imagens que possuem padrão decodificado no PDF</p>
+          <button class="btn btn-primary" id="btn-auto-extract">Extrair Automaticamente</button>
+        </div>
+        
+        <div class="method-card" id="method-manual">
+          <div class="method-icon">✋</div>
+          <h3>Seleção Manual</h3>
+          <p>Selecione manualmente as áreas que deseja extrair do PDF</p>
+          <button class="btn btn-primary" id="btn-manual-select">Selecionar Áreas</button>
+        </div>
+      </div>
+      
+      <div id="method-status" class="status-message"></div>
+    </section>
+
     <!-- Seção de Visualização e Seleção -->
     <section id="viewer-section" class="viewer-section" style="display: none;">
       <div class="viewer-header">
         <h2>Selecione as áreas que deseja extrair</h2>
         <div class="viewer-controls">
           <button id="btn-extract" class="btn btn-success">Extrair Seleções</button>
-          <button id="btn-clear" class="btn btn-secondary">Limpar Seleções</button>
+          <button id="btn-clear" class="btn btn-secondary">Remover Última Seleção</button>
           <button id="btn-back" class="btn btn-secondary">Voltar</button>
         </div>
       </div>

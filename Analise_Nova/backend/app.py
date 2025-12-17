@@ -13,13 +13,17 @@ DPI_PDF = 72
 FATOR_CONVERSAO = DPI_RENDERIZACAO / DPI_PDF
 
 def extrair_imgPDFKV(pdf_bytes:bytes, nome_arquivo:str) -> dict:
-    
+    """
+    Extrai imagens automaticamente do PDF que já possuem padrão decodificado.
+    Retorna imagens organizadas por página.
+    """
     doc = fitz.open('pdf', pdf_bytes)
 
     img_por_pagina = {}
 
     total_img_extraida = 0
 
+    # Diretório de saída
     saida_dir = "img_extraida"
     os.makedirs(saida_dir, exist_ok=True)
 
@@ -50,10 +54,12 @@ def extrair_imgPDFKV(pdf_bytes:bytes, nome_arquivo:str) -> dict:
                     img_files.write(image_bytes)
 
                 img_por_pagina[page_key].append({
-                    "nome":nome_imagem,
-                    "extensao":image_ext,
-                    "arquivo_bytes":len(image_bytes),
-                    "base64_data":base64_string
+                    "nome": nome_imagem,
+                    "extensao": image_ext,
+                    "arquivo_bytes": len(image_bytes),
+                    "base64_data": base64_string,
+                    "page_index": page_index,  # Adicionar índice da página
+                    "page_number": page_index + 1  # Número da página (1-based)
                 })
 
                 total_img_extraida += 1
@@ -61,21 +67,22 @@ def extrair_imgPDFKV(pdf_bytes:bytes, nome_arquivo:str) -> dict:
         doc.close()
 
         return {
-            "status":"sucesso",
-            "message":f"{total_img_extraida} imagem(ns) extraídas com sucesso.",
-            "imagens_encontradas":img_por_pagina
+            "status": "sucesso",
+            "message": f"{total_img_extraida} imagem(ns) extraídas com sucesso.",
+            "imagens_encontradas": img_por_pagina,
+            "total_imagens": total_img_extraida
         }
     
     except fitz.EmptyDocError:
         return {
-            "status":"erro",
-            "message":"O arquivo PDF não é válido ou está vazio."
+            "status": "erro",
+            "message": "O arquivo PDF não é válido ou está vazio."
         }
     
     except Exception as e:
         return {
-            "status" : "erro",
-            "message" : f"Erro interno ao extrair imagens: {e}"
+            "status": "erro",
+            "message": f"Erro interno ao extrair imagens: {e}"
         }
 
 
@@ -169,15 +176,9 @@ def extrair_regiao_especifica(pdf_bytes: bytes, nome_arquivo: str, page_index: i
     Returns:
         Dict com status, mensagem e dados da imagem extraída
     """
-    # Diretórios de saída
-    saida_dir_original = "img_extraida"
-    # Caminho relativo para a pasta imagens_capturadas no backend
-    # Se o script está em backend/app.py, precisamos voltar um nível e entrar em backend/imagens_capturadas
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    saida_dir_backend = os.path.join(script_dir, "imagens_capturadas")
-    
-    os.makedirs(saida_dir_original, exist_ok=True)
-    os.makedirs(saida_dir_backend, exist_ok=True)
+    # Diretório de saída
+    saida_dir = "img_extraida"
+    os.makedirs(saida_dir, exist_ok=True)
     
     prefixo_name = os.path.basename(nome_arquivo).split('.')[0]
     
@@ -216,15 +217,9 @@ def extrair_regiao_especifica(pdf_bytes: bytes, nome_arquivo: str, page_index: i
         base64_string = base64.b64encode(image_bytes).decode('utf-8')
         
         nome_imagem = f"{prefixo_name}_p{page_index+1}_selecao_{int(x)}_{int(y)}.png"
+        caminho_saida_img = os.path.join(saida_dir, nome_imagem)
         
-        # Salvar na pasta original (img_extraida)
-        caminho_saida_img_original = os.path.join(saida_dir_original, nome_imagem)
-        with open(caminho_saida_img_original, "wb") as img_file:
-            img_file.write(image_bytes)
-        
-        # Salvar também na pasta do backend (imagens_capturadas)
-        caminho_saida_img_backend = os.path.join(saida_dir_backend, nome_imagem)
-        with open(caminho_saida_img_backend, "wb") as img_file:
+        with open(caminho_saida_img, "wb") as img_file:
             img_file.write(image_bytes)
         
         doc.close()
@@ -334,6 +329,59 @@ def obter_paginas_renderizadas():
         }), 500
 
 
+@app.route('/extrair-imagens-automaticas/', methods=['POST'])
+def extrair_imagens_automaticas():
+    """
+    Endpoint para extrair imagens automaticamente do PDF usando extrair_imgPDFKV.
+    """
+    dados_json = request.get_json()
+    
+    if not dados_json or 'base64_data' not in dados_json or 'nome_arquivo' not in dados_json:
+        return jsonify({
+            "status": "erro",
+            "message": "Payload JSON inválido. Esperado: base64_data, nome_arquivo"
+        }), 400
+    
+    base64String = dados_json['base64_data']
+    nome_arquivo = dados_json['nome_arquivo']
+    
+    try:
+        dados_binarios = base64.b64decode(base64String)
+        resultado = extrair_imgPDFKV(dados_binarios, nome_arquivo)
+        
+        if resultado['status'] == 'sucesso':
+            # Converter estrutura para formato compatível com o frontend
+            imagens_extraidas = []
+            for page_key, imagens in resultado['imagens_encontradas'].items():
+                for img in imagens:
+                    imagens_extraidas.append({
+                        "status": "sucesso",
+                        "nome": img['nome'],
+                        "extensao": img['extensao'],
+                        "tamanho_bytes": img['arquivo_bytes'],
+                        "base64_data": img['base64_data'],
+                        "page_index": img['page_index'],
+                        "page_number": img['page_number']
+                    })
+            
+            return jsonify({
+                "status": "sucesso",
+                "value": {
+                    "total_imagens": resultado['total_imagens'],
+                    "imagens_extraidas": imagens_extraidas
+                }
+            })
+        else:
+            return jsonify(resultado), 400
+    
+    except Exception as e:
+        print(f'Erro ao extrair imagens automáticas: {e}')
+        return jsonify({
+            "status": "erro",
+            "message": f"Erro interno: {e}"
+        }), 500
+
+
 @app.route('/extrair-regioes-python/', methods=['POST'])
 def extrair_regioes_python():
     """
@@ -391,6 +439,7 @@ def extrair_regioes_python():
             
             resultado['indice_selecao'] = idx
             resultado['page_index'] = page_index
+            resultado['page_number'] = page_index + 1  # Número da página (1-based)
             imagens_extraidas.append(resultado)
         
         return jsonify({

@@ -101,10 +101,12 @@ class PDFViewer {
                 this.container.appendChild(pageWrapper);
                 this.canvases.push(canvas);
 
-                // Adicionar event listeners para seleção
-                this.setupSelectionHandlers(canvas, index);
-                
-                resolve();
+                // Aguardar um frame para garantir que o canvas foi renderizado antes de criar SelectionTool
+                requestAnimationFrame(() => {
+                    // Adicionar event listeners para seleção
+                    this.setupSelectionHandlers(canvas, index);
+                    resolve();
+                });
             };
             img.onerror = () => {
                 console.error(`Erro ao carregar imagem da página ${index + 1}`);
@@ -118,7 +120,7 @@ class PDFViewer {
      * Configura handlers de seleção para um canvas
      */
     setupSelectionHandlers(canvas, pageIndex) {
-        const selectionTool = new SelectionTool(canvas, pageIndex);
+        const selectionTool = new SelectionTool(canvas, pageIndex, this);
         this.selectionTools[pageIndex] = selectionTool;
         
         selectionTool.onSelectionComplete = (selection) => {
@@ -130,13 +132,19 @@ class PDFViewer {
                 const originalWidth = selection.width / scale.scaleX;
                 const originalHeight = selection.height / scale.scaleY;
                 
-                this.selections.push({
+                const selectionData = {
                     pageIndex: pageIndex,
                     x: originalX,
                     y: originalY,
                     width: originalWidth,
-                    height: originalHeight
-                });
+                    height: originalHeight,
+                    canvasX: selection.x,
+                    canvasY: selection.y,
+                    canvasWidth: selection.width,
+                    canvasHeight: selection.height
+                };
+                
+                this.selections.push(selectionData);
                 console.log(`Seleção adicionada na página ${pageIndex + 1}:`, { originalX, originalY, originalWidth, originalHeight });
             }
         };
@@ -150,7 +158,57 @@ class PDFViewer {
     }
 
     /**
-     * Limpa todas as seleções
+     * Remove a última seleção feita pelo usuário
+     */
+    removeLastSelection() {
+        if (this.selections.length === 0) {
+            return false; // Nenhuma seleção para remover
+        }
+        
+        // Remover a última seleção do array
+        const lastSelection = this.selections.pop();
+        const pageIndex = lastSelection.pageIndex;
+        
+        // Redesenhar todos os canvases com as seleções restantes
+        this.redrawAllCanvases();
+        
+        return true;
+    }
+
+    /**
+     * Redesenha todos os canvases com as seleções atuais
+     */
+    redrawAllCanvases() {
+        // Limpar todas as seleções dos SelectionTools
+        this.selectionTools.forEach((selectionTool, idx) => {
+            if (selectionTool) {
+                selectionTool.selections = [];
+            }
+        });
+        
+        // Re-adicionar seleções restantes aos SelectionTools correspondentes
+        this.selections.forEach(sel => {
+            const selectionTool = this.selectionTools[sel.pageIndex];
+            if (selectionTool && sel.canvasX !== undefined) {
+                selectionTool.selections.push({
+                    x: sel.canvasX,
+                    y: sel.canvasY,
+                    width: sel.canvasWidth,
+                    height: sel.canvasHeight
+                });
+            }
+        });
+        
+        // Redesenhar todos os canvases
+        this.selectionTools.forEach(selectionTool => {
+            if (selectionTool) {
+                selectionTool.redrawCanvas();
+            }
+        });
+    }
+
+    /**
+     * Limpa todas as seleções (mantido para compatibilidade, mas não usado no botão)
      */
     clearSelections() {
         this.selections = [];
@@ -158,21 +216,7 @@ class PDFViewer {
         // Limpar seleções em cada SelectionTool e redesenhar canvas
         this.selectionTools.forEach((selectionTool, pageIndex) => {
             if (selectionTool) {
-                selectionTool.selections = [];
-                // Redesenhar canvas com imagem original
-                const canvas = this.canvases[pageIndex];
-                if (canvas) {
-                    const ctx = canvas.getContext('2d');
-                    const page = this.pages[pageIndex];
-                    if (page) {
-                        const img = new Image();
-                        img.onload = () => {
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
-                            ctx.drawImage(img, 0, 0);
-                        };
-                        img.src = `data:image/png;base64,${page.base64Data}`;
-                    }
-                }
+                selectionTool.clearAllSelections();
             }
         });
     }

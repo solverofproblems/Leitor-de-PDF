@@ -48,11 +48,15 @@ class ResultsGallery {
 
         const imageInfo = document.createElement('div');
         imageInfo.className = 'result-image-info';
+        
+        // Determinar número da página (priorizar page_number, depois page_index + 1)
+        const pageNumber = imageData.page_number || (imageData.page_index !== undefined ? imageData.page_index + 1 : 'N/A');
+        
         imageInfo.innerHTML = `
             <p><strong>Nome:</strong> ${imageData.nome || 'N/A'}</p>
-            <p><strong>Tamanho:</strong> ${this.formatBytes(imageData.tamanho_bytes || 0)}</p>
-            <p><strong>Dimensões:</strong> ${imageData.largura || 'N/A'} x ${imageData.altura || 'N/A'} px</p>
-            ${imageData.page_index !== undefined ? `<p><strong>Página:</strong> ${imageData.page_index + 1}</p>` : ''}
+            <p><strong>Tamanho:</strong> ${this.formatBytes(imageData.tamanho_bytes || imageData.arquivo_bytes || 0)}</p>
+            ${imageData.largura && imageData.altura ? `<p><strong>Dimensões:</strong> ${imageData.largura} x ${imageData.altura} px</p>` : ''}
+            <p><strong>Página:</strong> ${pageNumber}</p>
         `;
 
         imageWrapper.appendChild(img);

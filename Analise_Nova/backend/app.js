@@ -153,6 +153,56 @@ app.post('/obter-paginas', upload.single('arquivo_para_enviar'), async (req, res
     }
 });
 
+app.post('/extrair-imagens-automaticas', async (req, res) => {
+    /**
+     * Endpoint para extrair imagens automaticamente do PDF.
+     * Usa sessão para evitar reenviar o PDF completo.
+     */
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+        return res.status(400).send({
+            status: "erro",
+            message: "Payload inválido. Esperado: sessionId"
+        });
+    }
+
+    // Buscar PDF da sessão
+    const session = pdfSessions.get(sessionId);
+    if (!session) {
+        return res.status(404).send({
+            status: "erro",
+            message: "Sessão não encontrada ou expirada. Por favor, faça upload do PDF novamente."
+        });
+    }
+
+    try {
+        const response = await axios.post('http://localhost:8000/extrair-imagens-automaticas/', {
+            base64_data: session.base64_data,
+            nome_arquivo: session.nome_arquivo
+        });
+
+        if (response.data && response.data.status === "sucesso") {
+            return res.status(200).send({
+                status: "sucesso",
+                value: response.data.value
+            });
+        } else {
+            return res.status(400).send({
+                status: "erro",
+                message: response.data.message || "Erro ao extrair imagens automaticamente"
+            });
+        }
+
+    } catch (error) {
+        console.error('Erro ao extrair imagens automáticas:', error);
+        return res.status(500).send({
+            status: "erro",
+            message: error.response?.data?.message || error.message || "Erro interno do servidor"
+        });
+    }
+});
+
 app.post('/extrair-regioes', async (req, res) => {
     /**
      * Endpoint para extrair regiões específicas do PDF baseado em seleções do usuário.

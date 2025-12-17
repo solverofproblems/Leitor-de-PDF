@@ -100,6 +100,66 @@ body {
   outline-offset: 2px;
 }
 
+/* Seção de Escolha de Método */
+.method-selection-section {
+  text-align: center;
+  padding: 2rem;
+}
+
+.method-selection-section h2 {
+  font-size: 2em;
+  margin-bottom: 0.5rem;
+}
+
+.method-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 800px;
+  margin: 2rem auto;
+}
+
+.method-card {
+  background-color: #1a1a1a;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 2rem;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.method-card:hover {
+  border-color: #646cff;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.method-icon {
+  font-size: 4em;
+  margin-bottom: 1rem;
+}
+
+.method-card h3 {
+  font-size: 1.5em;
+  margin-bottom: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.method-card p {
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  flex-grow: 1;
+}
+
+.method-card .btn {
+  margin-top: auto;
+  width: 100%;
+}
+
 /* Botões */
 .btn {
   border-radius: 8px;

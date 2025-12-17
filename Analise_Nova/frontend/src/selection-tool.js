@@ -3,9 +3,10 @@
  * Permite ao usuário clicar e arrastar para criar seleções
  */
 class SelectionTool {
-    constructor(canvas, pageIndex) {
+    constructor(canvas, pageIndex, pdfViewer = null) {
         this.canvas = canvas;
         this.pageIndex = pageIndex;
+        this.pdfViewer = pdfViewer;
         this.ctx = canvas.getContext('2d');
         this.isDrawing = false;
         this.startX = 0;
@@ -13,14 +14,28 @@ class SelectionTool {
         this.currentX = 0;
         this.currentY = 0;
         this.onSelectionComplete = null;
-        this.selections = []; // Array para armazenar seleções já feitas
+        this.selections = []; // Array para armazenar seleções já feitas (coordenadas do canvas)
 
-        // Salvar imagem original
+        // Salvar imagem original - aguardar canvas estar pronto
         this.originalImage = new Image();
         this.originalImage.onload = () => {
-            // Imagem original carregada
+            // Imagem original carregada e pronta
         };
-        this.originalImage.src = canvas.toDataURL();
+        
+        // Capturar imagem original após o canvas ser desenhado
+        // Usar requestAnimationFrame para garantir que o canvas já foi renderizado
+        requestAnimationFrame(() => {
+            if (canvas.width > 0 && canvas.height > 0) {
+                this.originalImage.src = canvas.toDataURL();
+            } else {
+                // Se ainda não estiver pronto, tentar novamente
+                setTimeout(() => {
+                    if (canvas.width > 0 && canvas.height > 0) {
+                        this.originalImage.src = canvas.toDataURL();
+                    }
+                }, 200);
+            }
+        });
 
         this.setupEventListeners();
     }
@@ -130,9 +145,12 @@ class SelectionTool {
 
     drawSelection() {
         // Redesenhar imagem original
-        if (this.originalImage.complete) {
+        if (this.originalImage.complete && this.originalImage.width > 0) {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             this.ctx.drawImage(this.originalImage, 0, 0);
+        } else {
+            // Se a imagem original ainda não estiver pronta, usar o canvas atual como base
+            // Isso evita problemas quando o usuário começa a desenhar antes da imagem carregar
         }
 
         // Redesenhar seleções anteriores
@@ -192,6 +210,63 @@ class SelectionTool {
                 height: height
             });
         }
+    }
+
+    /**
+     * Remove a última seleção deste canvas
+     */
+    removeLastSelection() {
+        if (this.selections.length === 0) {
+            return false;
+        }
+        
+        this.selections.pop();
+        this.redrawCanvas();
+        return true;
+    }
+
+    /**
+     * Limpa todas as seleções deste canvas
+     */
+    clearAllSelections() {
+        this.selections = [];
+        this.redrawCanvas();
+    }
+
+    /**
+     * Redesenha o canvas com a imagem original e todas as seleções
+     */
+    redrawCanvas() {
+        // Limpar canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Desenhar imagem original se estiver pronta
+        if (this.originalImage.complete && this.originalImage.width > 0) {
+            this.ctx.drawImage(this.originalImage, 0, 0);
+        } else {
+            // Se a imagem original não estiver pronta, recarregar do PDF
+            // Isso garante que sempre temos uma imagem base válida
+            const page = this.pdfViewer?.pages[this.pageIndex];
+            if (page) {
+                const img = new Image();
+                img.onload = () => {
+                    this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+                    // Atualizar imagem original para próxima vez
+                    this.originalImage.src = this.canvas.toDataURL();
+                    // Desenhar seleções
+                    this.selections.forEach(sel => {
+                        this.drawSelectionRect(sel.x, sel.y, sel.width, sel.height);
+                    });
+                };
+                img.src = `data:image/png;base64,${page.base64Data}`;
+                return; // Retornar aqui, pois o desenho acontecerá no onload
+            }
+        }
+        
+        // Desenhar todas as seleções
+        this.selections.forEach(sel => {
+            this.drawSelectionRect(sel.x, sel.y, sel.width, sel.height);
+        });
     }
 }
 
